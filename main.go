@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"database/sql"
 	"fmt"
 	"html/template"
@@ -72,10 +71,10 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		user.Username = username
 		user.Password = password
 		//Set user cookie
-		h := sha256.New()
-		byte_written, _ := h.Write([]byte(password))
+		//h := sha256.New()
+		//bytesWritten, _ := h.Write([]byte(password))
 		//hashed_password := sha256.Sum256([]byte(password))
-		cookie := http.Cookie{Username: username, Password: password}
+		cookie := http.Cookie{Name: "username", Value: username}
 		http.SetCookie(w, &cookie)
 
 	} else {
