@@ -52,12 +52,16 @@ func main() {
 
 }
 
-func isSessionSet(w http.ResponseWriter, r *http.Request, username string, password string) (flag bool) {
-	session, err := store.Get(r, "logged-in")
+func handleError(w http.ResponseWriter, r *http.Request, err error) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func isSessionSet(w http.ResponseWriter, r *http.Request, username string, password string) (flag bool) {
+	session, err := store.Get(r, "logged-in")
+	handleError(w, r, err)
 
 	if !session.IsNew {
 		return false
@@ -68,10 +72,21 @@ func isSessionSet(w http.ResponseWriter, r *http.Request, username string, passw
 	hasher.Write(bytePassword)
 	encryptedPassword := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 	session.Values["username"] = username
-	session.Values["password"] = encryptedPassword
+	session.Values["password"] = encryptedPassword //Do not set password session if u wont atleast hash it
+	session.Values["loggedin"] = true
 	session.Save(r, w)
 	//we have saved the user session, return true so client can redirect to the appropriate home page
 	return true
+}
+
+func invalidateSession(w http.ResponseWriter, r *http.Request) {
+	session, err := store.Get(r, "logged-in")
+	handleError(w, r, err)
+	if !session.IsNew {
+		session.Values["username"] = " "
+		session.Values["password"] = " "
+		session.Values["loggedin"] = false
+	}
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
