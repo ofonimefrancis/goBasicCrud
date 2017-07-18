@@ -59,14 +59,13 @@ func handleError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 }
 
-func isSessionSet(w http.ResponseWriter, r *http.Request, username string, password string) (flag bool) {
+func setSession(w http.ResponseWriter, r *http.Request, username string, password string) {
 	session, err := store.Get(r, "logged-in")
 	handleError(w, r, err)
 
 	if !session.IsNew {
-		return false
+		return
 	}
-
 	bytePassword := []byte(password)
 	hasher := sha1.New()
 	hasher.Write(bytePassword)
@@ -75,8 +74,6 @@ func isSessionSet(w http.ResponseWriter, r *http.Request, username string, passw
 	session.Values["password"] = encryptedPassword //Do not set password session if u wont atleast hash it
 	session.Values["loggedin"] = true
 	session.Save(r, w)
-	//we have saved the user session, return true so client can redirect to the appropriate home page
-	return true
 }
 
 func invalidateSession(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +109,10 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		user.Username = username
 		user.Password = password
 		cookie := http.Cookie{Name: "username", Value: username}
+		//set session
+		setSession(w, r, username, password)
 		http.SetCookie(w, &cookie)
+		//save the user information to a login table in the database
 		fmt.Fprint(w, user)
 
 	} else {
