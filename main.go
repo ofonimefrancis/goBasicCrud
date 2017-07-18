@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha1"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"log"
@@ -9,6 +11,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 )
 
 type User struct {
@@ -25,6 +28,7 @@ type Post struct {
 }
 
 var router = mux.NewRouter()
+var store = sessions.NewCookieStore([]byte("youhadgot2bekiddingme"))
 
 func main() {
 	db, err := sql.Open("mysql", "root@glootian@/status")
@@ -46,6 +50,28 @@ func main() {
 		panic(err)
 	}
 
+}
+
+func isSessionSet(w http.ResponseWriter, r *http.Request, username string, password string) (flag bool) {
+	session, err := store.Get(r, "logged-in")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !session.IsNew {
+		return false
+	}
+
+	bytePassword := []byte(password)
+	hasher := sha1.New()
+	hasher.Write(bytePassword)
+	encryptedPassword := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	session.Values["username"] = username
+	session.Values["password"] = encryptedPassword
+	session.Save(r, w)
+	//we have saved the user session, return true so client can redirect to the appropriate home page
+	return true
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,15 +96,12 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	if len(username) > 0 && len(password) > 0 {
 		user.Username = username
 		user.Password = password
-		//Set user cookie
-		//h := sha256.New()
-		//bytesWritten, _ := h.Write([]byte(password))
-		//hashed_password := sha256.Sum256([]byte(password))
 		cookie := http.Cookie{Name: "username", Value: username}
 		http.SetCookie(w, &cookie)
+		fmt.Fprint(w, user)
 
 	} else {
-		fmt.Fprintf(w, "Username and password cannot be empty")
+		//fmt.Fprintf(w, "Username and password cannot be empty")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 }
