@@ -1,0 +1,35 @@
+{{define "Home" }}
+<html>
+  <head>
+    <title>Hello World</title>
+
+    <style>
+      * { margin: 0; padding: 0;}
+      .container {
+        width: 650px;
+        margin: 120px auto;
+      }
+
+      .container h2 { margin-bottom: 40px;}
+      input[type=text] { height: 40px; width: 70%; box-sizing: border-box; padding: 5px 3px;}
+      input[type=submit]{height: 40px; width: 60px; padding:2px;}
+    </style>
+  </head>
+  <body>
+
+      <div class="container">
+          <div class="content">
+              <h2>Welcome {{.Username}}</h2>
+              <form class="form" method="post" action="/home/addPost">
+                  <div class="form-content">
+                      <input type="text" class="post" name="post" placeholder="What's On Your mind?" />
+                      <input type="submit" value="Submit" />
+                  </div>
+              </form>
+
+              <!-- Loop through all the post in the database and add display them here -->
+          </div>
+      </div>
+  </body>
+</html>
+{{end}}

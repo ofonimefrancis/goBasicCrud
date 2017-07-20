@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"database/sql"
 	"encoding/base64"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -29,6 +28,8 @@ type Post struct {
 
 var router = mux.NewRouter()
 var store = sessions.NewCookieStore([]byte("youhadgot2bekiddingme"))
+var err error
+var db *sql.DB
 
 func main() {
 	db, err := sql.Open("mysql", "root@glootian@/status")
@@ -37,6 +38,7 @@ func main() {
 	}
 	defer db.Close()
 
+	router.HandleFunc("/", indexHandler)
 	router.HandleFunc("/login", loginHandler)
 	router.HandleFunc("/home", homeHandler)
 	router.HandleFunc("/home/post", statusHandler).Methods("POST")
@@ -50,6 +52,48 @@ func main() {
 		panic(err)
 	}
 
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+
+}
+
+//TODO: Analyze for the appropriate arguments to this function
+func InsertPost(post Post) {
+	err := db.Ping() //make sure that the database is available
+	if err != nil {
+		//Do something here
+	}
+}
+
+//TODO: Analyze for the appropriate arguments to this function
+func DeletePost(post Post) {
+	err := db.Ping() //make sure that the database is available
+	if err != nil {
+		//Do something here
+	}
+}
+
+func UpdatePost(postId int64) {
+	err := db.Ping()
+	if err != nil {
+		//Do something here
+	}
+}
+
+func ListAllPost() {
+	err := db.Ping()
+	if err != nil {
+		//Do something here
+	}
+}
+
+func getPostByID() {
+	err := db.Ping()
+	if err != nil {
+		//Do something here
+	}
 }
 
 func handleError(w http.ResponseWriter, r *http.Request, err error) {
@@ -83,6 +127,7 @@ func invalidateSession(w http.ResponseWriter, r *http.Request) {
 		session.Values["username"] = " "
 		session.Values["password"] = " "
 		session.Values["loggedin"] = false
+		session.Save(r, w)
 	}
 }
 
@@ -90,7 +135,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "login", "Login", User{UserId: 1, Username: "Jiggaseige"})
 }
 
-func renderTemplate(w http.ResponseWriter, tmpl string, name string, user User) {
+func renderTemplate(w http.ResponseWriter, tmpl string, name string, user interface{}) {
 	t := template.Must(template.New("fb").ParseFiles("./templates/" + tmpl + ".html"))
 	if err := t.ExecuteTemplate(w, name, user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -98,7 +143,19 @@ func renderTemplate(w http.ResponseWriter, tmpl string, name string, user User) 
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "home", "Home", User{UserId: 1, Username: "Jiggaseige"})
+	//session, _ := store.Get(r, "logged-in")
+
+	//username := session.Values["username"]
+
+	//We want to show the
+	//1. Welcome Username here
+	//2. Loop through all the post added in the database
+	renderTemplate(w, "home", "Home", User{Username: "googlehead"})
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	invalidateSession(w, r)
+	http.Redirect(w, r, "/", 302)
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,14 +166,12 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		user.Username = username
 		user.Password = password
 		cookie := http.Cookie{Name: "username", Value: username}
-		//set session
 		setSession(w, r, username, password)
 		http.SetCookie(w, &cookie)
-		//save the user information to a login table in the database
-		fmt.Fprint(w, user)
+		//TODO: save to the database
+		http.Redirect(w, r, "/home", http.StatusSeeOther)
 
 	} else {
-		//fmt.Fprintf(w, "Username and password cannot be empty")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 }
